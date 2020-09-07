@@ -1,10 +1,9 @@
-import logging as log
-
+from mappy import log
 import geopandas
 import numpy as np
 import shapely.ops
-from shapely.geometry import LineString, MultiLineString, GeometryCollection, MultiPolygon, MultiPoint
-
+from shapely.geometry import LineString, MultiLineString, GeometryCollection, MultiPolygon, MultiPoint, Polygon
+from shapely.ops import polylabel
 
 def explode(geom):
     out = []
@@ -15,6 +14,12 @@ def explode(geom):
         return out
     else:
         return [geom]
+
+def explode_all(geometries):
+    out = []
+    for g in geometries:
+        out+=explode(g)
+    return out
 
 
 def extend(p1: np.ndarray, p2: np.ndarray, distance: float):
@@ -59,6 +64,10 @@ def extend_lines(geodataframe: geopandas.GeoDataFrame, distance: float):
     :return:
     """
     from copy import deepcopy
+
+
+    allg = explode_all(geodataframe.geometry)
+    geodataframe = geopandas.GeoDataFrame(geometry=allg)
     outframe = deepcopy(geodataframe)
 
     out = []  # the collection of extended LineStrings
@@ -117,8 +126,9 @@ def compute_self_intersections_points(geodataframe: geopandas.GeoDataFrame):
                 ints.append(i)
             # else:
             #     log.warning(f"skipping intersection because of unsupported type {i.type}")
-
-    return geopandas.GeoDataFrame(geometry=ints)
+    out = geopandas.GeoDataFrame(geometry=ints)
+    out.crs = geodataframe.crs # copy crs over
+    return out
 
 
 def polygonize(lines: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
@@ -168,13 +178,100 @@ def transfer_units_to_polygons(polygons: geopandas.GeoDataFrame, units: geopanda
             if np.all(thisunit == thisunit[0]):
                 log.warning("no prob, because point to the same unit")
 
+            else:
+                log.warning("The unit contains points with mismatched indicator points. Setting to None")
+                thisunit = [None]
+
         if len(ids) < 1:
             log.error("cannot associate some polygons to an unit, missing points in unit definition file?")
             thisunit = [None]
 
         myunit = thisunit[0]
         outids.append(myunit)
+
     from copy import deepcopy
     out_polygons = deepcopy(polygons)
     out_polygons[units_field] = outids
     return out_polygons
+
+
+def explode_multipolygons(polygons: geopandas.GeoDataFrame):
+    return polygons.explode()
+
+
+
+def generate_label_points(polygons: geopandas.GeoDataFrame):
+    labels = []
+    for pol in polygons.geometry:
+        if not isinstance(pol, Polygon):
+            raise TypeError("Only polygons are supported")
+        labels.append(polylabel(pol, tolerance=0.1))
+
+    aspd = geopandas.GeoDataFrame(geometry=labels)
+    return aspd
+
+def transfer_polygons_fields_to_points(points: geopandas.GeoDataFrame, polygons: geopandas.GeoDataFrame):
+    return geopandas.sjoin(points, polygons)
+
+def remove_null_geometries(data: geopandas.GeoDataFrame):
+    nulls = data.geometry.values == None
+    if np.any(nulls):
+        log.info("Found null entries")
+        return data[data.geometry.values != None]  # remove null geometries
+    else:
+        return data
+
+def remove_truly_duplicated_geometries(data: geopandas.GeoDataFrame):
+    return data.drop_duplicates("geometry")
+
+import fiona, os
+
+def mappy_construct(lines:geopandas.GeoDataFrame, points:geopandas.GeoDataFrame, output:str,
+                    units_field:str, layer_name="geomap",
+                    auto_extend=0,  overwrite=False, debug=False):
+
+    log.info(f"CRS lines: {lines.crs}")
+    log.info(f"CRS points: {points.crs}")
+
+    out_args = {}
+    out_args["layers"] = []
+
+    if lines.crs != points.crs:
+        log.warning("points and lines layers has different CRS, reprojecting...")
+        points = points.to_crs(lines.crs)
+
+    if os.path.exists(output):
+        log.debug(f"File {output} exists!")
+        existing_layers = fiona.listlayers(output)
+        if layer_name in existing_layers and overwrite is not True:
+            log.error(f"output geopackage {output} already contains a layer named {layer_name}.")
+            return out_args
+
+
+    if auto_extend != 0:
+        log.info("extend_lines enabled, lines are extended")
+        lines = extend_lines(lines, auto_extend)
+
+        if debug:
+            lines.to_file(output, layer="debug_extended_lines", driver="GPKG")
+            out_args["layers"].append(lines)
+
+    if debug:
+        intersections = compute_self_intersections_points(lines)
+        intersections.to_file(output, layer="debug_self_intersections", driver="GPKG")
+        out_args["layers"].append("debug_self_intersections")
+
+
+    polygons = polygonize(lines)
+
+    if debug:
+        polygons.to_file(output, layer="debug_polygons", driver="GPKG")
+        out_args["layers"].append("debug_polygons")
+
+    out = transfer_units_to_polygons(polygons, points, units_field)
+    out.crs = lines.crs
+    out.to_file(output, layer=layer_name, driver="GPKG")
+    out_args["layers"].append(layer_name)
+    out_args["gpkg"] = output
+
+    return out_args

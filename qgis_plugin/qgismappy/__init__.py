@@ -23,6 +23,23 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
+import os
+import sys
+
+from qgis.core import QgsMessageLog
+
+path = os.path.dirname(os.path.abspath(__file__))
+
+fullpath = path + " /../../"
+fullpath = os.path.abspath(fullpath)
+
+QgsMessageLog.logMessage(fullpath, "Mappy")
+
+# to fix, we are expecting the structure is as in the dev repo
+
+
+if fullpath not in sys.path:
+    sys.path.insert(0, fullpath)
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
