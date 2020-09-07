@@ -21,6 +21,9 @@
  *                                                                         *
  ***************************************************************************/
 """
+
+print(" going to import stuff")
+
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
@@ -31,6 +34,8 @@ from .resources import *
 from .qgismappy_dockwidget import MappyDockWidget
 import os.path
 
+
+print(" done the imports")
 
 class Mappy:
     """QGIS Plugin Implementation."""

@@ -4,6 +4,8 @@ import numpy as np
 import shapely.ops
 from shapely.geometry import LineString, MultiLineString, GeometryCollection, MultiPolygon, MultiPoint, Polygon
 from shapely.ops import polylabel
+import fiona, os
+
 
 def explode(geom):
     out = []
@@ -224,12 +226,12 @@ def remove_null_geometries(data: geopandas.GeoDataFrame):
 def remove_truly_duplicated_geometries(data: geopandas.GeoDataFrame):
     return data.drop_duplicates("geometry")
 
-import fiona, os
+
 
 def mappy_construct(lines:geopandas.GeoDataFrame, points:geopandas.GeoDataFrame, output:str,
                     units_field:str, layer_name="geomap",
                     auto_extend=0,  overwrite=False, debug=False):
-
+    print(" mappy construct")
     log.info(f"CRS lines: {lines.crs}")
     log.info(f"CRS points: {points.crs}")
 
@@ -269,8 +271,25 @@ def mappy_construct(lines:geopandas.GeoDataFrame, points:geopandas.GeoDataFrame,
         out_args["layers"].append("debug_polygons")
 
     out = transfer_units_to_polygons(polygons, points, units_field)
-    out.crs = lines.crs
-    out.to_file(output, layer=layer_name, driver="GPKG")
+
+    out.crs = None # for now, then use the same as lines
+
+    from mappy.dev_tests import test_geopandas_save_gpkg
+    print(" testing")
+    test_geopandas_save_gpkg()
+    print(" testing ok")
+    # out.crs = None
+
+    print(f" mappy construct - doing save of file {output}\n {out}")
+    try:
+
+        out.to_file(output, layer=layer_name, driver="GPKG")
+
+    except Exception as e:
+        print(e)
+        raise e
+
+    print(" mappy construct - save done")
     out_args["layers"].append(layer_name)
     out_args["gpkg"] = output
 

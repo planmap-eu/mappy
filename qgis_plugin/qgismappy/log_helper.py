@@ -1,8 +1,14 @@
+print(" import heads from log helper")
+
+
 from mappy import log
+print(" import mappy log")
 import logging
+
+print(" import sys log")
 from qgis.core import QgsMessageLog
 
-
+print(" import qgis log")
 class QgsLogHandler(logging.StreamHandler):
     """
     A handler class which allows the cursor to stay on

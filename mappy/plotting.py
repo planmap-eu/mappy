@@ -1,5 +1,11 @@
+
+print(" trying geopandas imported")
 import geopandas
+print(" geopandas imported")
 from matplotlib.pylab import grid, text, gca
+
+print(" matplotlib imported")
+
 def plot_contacts_and_units_points(contacts:geopandas.GeoDataFrame, units:geopandas.GeoDataFrame, units_field:str):
     """
     :param contacts:

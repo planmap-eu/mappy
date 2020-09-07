@@ -22,21 +22,43 @@
  ***************************************************************************/
 """
 
+print(" importing the dock")
+
 import os
 from typing import List, Tuple
 
 from qgis.PyQt import QtGui, QtWidgets, uic, QtCore
 from qgis.PyQt.QtCore import pyqtSignal, QObject
 from qgis.PyQt.QtWidgets import QFileDialog, QLineEdit, QCheckBox
-from qgis._core import QgsCategorizedSymbolRenderer
-from qgis._gui import QgsMapLayerComboBox, QgsFieldComboBox, QgsDoubleSpinBox
+from qgis.core import QgsCategorizedSymbolRenderer
+from qgis.gui import QgsMapLayerComboBox, QgsFieldComboBox, QgsDoubleSpinBox
 from qgis.core import QgsMessageLog, QgsProject, QgsMapLayerProxyModel, QgsSymbol, QgsRendererCategory, \
     QgsSingleSymbolRenderer, QgsVectorLayer
+
+from qgis.core import QgsVectorLayer
+
+import mappy.geom_ops
+
+
+print(" done head imports for qgis")
+
 import logging as log
+
+print(" done with loggin 1-2")
+
 from .log_helper import *
+
+print(" done with loggin 2-2")
+
+
 from pathlib import Path
 
+print(" done with loggin and paths")
+
 from mappy.conversions import read_layer
+
+print(" trying to import from mappy")
+
 
 # from qgis.gui import QgsMapLayerComboBox
 
@@ -44,6 +66,9 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'qgismappy_dockwidget_base.ui'))
 
 import enum
+
+print(" done head imports")
+
 
 
 class MODE(enum.Enum):
@@ -66,6 +91,8 @@ mappy_deconstruct_args_mapping = [("de_map_layer", "polygons"),
                                   ("de_output_gpkg", "output_gpkg"),
                                   ("de_lines_layer", "lines_layer_name"),
                                   ("de_points_layer", "points_layer_name")]
+
+print(" starting class def")
 
 
 class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
@@ -141,6 +168,7 @@ class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
     @QtCore.pyqtSlot()
     def on_execute_clicked(self):
+        print(" execution clicked")
         log.debug(f"executing, mode is {self.current_mode}")
 
         if self.current_mode == MODE.CONSTRUCT:
@@ -213,30 +241,34 @@ class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         if categories_field is not None:
             self.resetCategoriesIfNeeded(l, categories_field)
 
-        l.triggerRepaint()
-        l.dataChanged.emit()  # or dataSourceChanged?
-        l.dataSourceChanged.emit()
+        # l.triggerRepaint()
+        # l.dataChanged.emit()  # or dataSourceChanged?
+        # l.dataSourceChanged.emit()
         return l
 
     def execute_construct(self, args):
-        import mappy.geom_ops
+        print(" executing construct")
+        try:
+            print(" trying")
+            output = mappy.geom_ops.mappy_construct(**args)  # this will write to the geopackage
+            print(" trying done")
+        except Exception as e:
+            print(" error occured")
+            print(e)
+            return
 
-        output = mappy.geom_ops.mappy_construct(**args)  # this will write to the geopackage
-
-        from qgis.core import QgsVectorLayer
+        print(" output written")
 
         # outgpkg = outgpkg[:-5]
         layer_name = args["layer_name"]
         outgpkg = args["output"]
         units_field = args["units_field"]
 
-
         log.info(f"loading layer {outgpkg}")
 
         l = self.findLayer(outgpkg, layer_name)  # check if already loaded
         if l:
             log.info("Layer already loaded, just updating categories")
-
 
         else:
             l = self.addLayerFromGeopackage(outgpkg, layer_name, units_field)
