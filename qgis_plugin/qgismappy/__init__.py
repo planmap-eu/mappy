@@ -26,24 +26,30 @@
 import os
 import sys
 
-from qgis.core import QgsMessageLog
-
 path = os.path.dirname(os.path.abspath(__file__))
 
-fullpath = path + " /../../"
-fullpath = os.path.abspath(fullpath)
+if os.path.exists(os.path.join(path, "mappy")):
+    sys.path.append(path)
 
-QgsMessageLog.logMessage(fullpath, "Mappy")
+else:  # we are in the dev folder
+    fullpath = path + " /../../"
+    fullpath = os.path.abspath(fullpath)
+
+    if fullpath not in sys.path:
+        # print(" adding the path")
+        sys.path.insert(0, fullpath)
+
+# QgsMessageLog.logMessage(fullpath, "Mappy")
 
 # to fix, we are expecting the structure is as in the dev repo
 
 
-if fullpath not in sys.path:
-    # print(" adding the path")
-    sys.path.insert(0, fullpath)
-
 # print(" path is there- loading mappy")
-import mappy
+try:
+    import mappy
+except:
+    raise ImportError("Cannot import mappy. This should not happen")
+
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
