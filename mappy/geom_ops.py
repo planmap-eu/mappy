@@ -17,10 +17,11 @@ def explode(geom):
     else:
         return [geom]
 
+
 def explode_all(geometries):
     out = []
     for g in geometries:
-        out+=explode(g)
+        out += explode(g)
     return out
 
 
@@ -67,7 +68,6 @@ def extend_lines(geodataframe: geopandas.GeoDataFrame, distance: float):
     """
     from copy import deepcopy
 
-
     allg = explode_all(geodataframe.geometry)
     geodataframe = geopandas.GeoDataFrame(geometry=allg)
     outframe = deepcopy(geodataframe)
@@ -99,7 +99,7 @@ def extend_lines(geodataframe: geopandas.GeoDataFrame, distance: float):
         extended = np.row_stack([news, pts, newe])
 
         if np.isnan(extended).any():
-            print("Containing nans")
+            log.warning("Extended line containing nans, should not happen")
 
         l = LineString(extended)
         if not l.is_valid:
@@ -129,7 +129,7 @@ def compute_self_intersections_points(geodataframe: geopandas.GeoDataFrame):
             # else:
             #     log.warning(f"skipping intersection because of unsupported type {i.type}")
     out = geopandas.GeoDataFrame(geometry=ints)
-    out.crs = geodataframe.crs # copy crs over
+    out.crs = geodataframe.crs  # copy crs over
     return out
 
 
@@ -201,37 +201,45 @@ def explode_multipolygons(polygons: geopandas.GeoDataFrame):
     return polygons.explode()
 
 
+def mappy_polylabel(polygon):
+    if not isinstance(polygon, Polygon):
+        raise TypeError(f"Only polygons are supported, while geometry was {type(pol)}")
+    return polylabel(polygon, tolerance=0.1)
+
 
 def generate_label_points(polygons: geopandas.GeoDataFrame):
-    labels = []
-    for pol in polygons.geometry:
-        if not isinstance(pol, Polygon):
-            raise TypeError("Only polygons are supported")
-        labels.append(polylabel(pol, tolerance=0.1))
-
+    import multiprocessing
+    pool = multiprocessing.Pool()
+    labels = pool.map(mappy_polylabel, polygons.geometry)
+    pool.close()
     aspd = geopandas.GeoDataFrame(geometry=labels)
     return aspd
 
+
 def transfer_polygons_fields_to_points(points: geopandas.GeoDataFrame, polygons: geopandas.GeoDataFrame):
-    return geopandas.sjoin(points, polygons)
+    with_fields = geopandas.sjoin(points, polygons)
+    with_fields = with_fields.drop("fid", axis=1)  # remove the additional fid column that has been copied over
+    return with_fields
+
 
 def remove_null_geometries(data: geopandas.GeoDataFrame):
     nulls = data.geometry.values == None
+    log.info(f"found {len(nulls)} null geometries")
     if np.any(nulls):
         log.info("Found null entries")
         return data[data.geometry.values != None]  # remove null geometries
     else:
         return data
 
+
 def remove_truly_duplicated_geometries(data: geopandas.GeoDataFrame):
     return data.drop_duplicates("geometry")
 
 
-
-def mappy_construct(lines:geopandas.GeoDataFrame, points:geopandas.GeoDataFrame, output:str,
-                    units_field:str, layer_name="geomap",
-                    auto_extend=0,  overwrite=False, debug=False):
-    print(" mappy construct")
+def mappy_construct(lines: geopandas.GeoDataFrame, points: geopandas.GeoDataFrame, output: str,
+                    units_field: str, layer_name="geomap",
+                    auto_extend=0, overwrite=False, debug=False):
+    log.info("Executing mappy construct")
     log.info(f"CRS lines: {lines.crs}")
     log.info(f"CRS points: {points.crs}")
 
@@ -249,7 +257,6 @@ def mappy_construct(lines:geopandas.GeoDataFrame, points:geopandas.GeoDataFrame,
             log.error(f"output geopackage {output} already contains a layer named {layer_name}.")
             return out_args
 
-
     if auto_extend != 0:
         log.info("extend_lines enabled, lines are extended")
         lines = extend_lines(lines, auto_extend)
@@ -263,7 +270,6 @@ def mappy_construct(lines:geopandas.GeoDataFrame, points:geopandas.GeoDataFrame,
         intersections.to_file(output, layer="debug_self_intersections", driver="GPKG")
         out_args["layers"].append("debug_self_intersections")
 
-
     polygons = polygonize(lines)
 
     if debug:
@@ -272,15 +278,11 @@ def mappy_construct(lines:geopandas.GeoDataFrame, points:geopandas.GeoDataFrame,
 
     out = transfer_units_to_polygons(polygons, points, units_field)
 
-    out.crs = None # for now, then use the same as lines
+    out.crs = None  # for now, then use the same as lines
 
-    from mappy.dev_tests import test_geopandas_save_gpkg
-    print(" testing")
-    test_geopandas_save_gpkg()
-    print(" testing ok")
-    # out.crs = None
+    # from mappy.dev_tests import test_geopandas_save_gpkg
+    # test_geopandas_save_gpkg()
 
-    print(f" mappy construct - doing save of file {output}\n {out}")
     try:
 
         out.to_file(output, layer=layer_name, driver="GPKG")
@@ -289,8 +291,71 @@ def mappy_construct(lines:geopandas.GeoDataFrame, points:geopandas.GeoDataFrame,
         print(e)
         raise e
 
-    print(" mappy construct - save done")
     out_args["layers"].append(layer_name)
     out_args["gpkg"] = output
 
     return out_args
+
+
+def mappy_deconstruct(polygons, units_field, output_gpkg, lines_layer_name, points_layer_name):
+    log.info("Executing mappy deconstruct")
+    lines, polygons = polygons_to_lines(polygons)  # it also returns a cleaned version of the polygonal layer
+    points = generate_label_points(polygons)
+    points = transfer_polygons_fields_to_points(points, polygons)
+    points.reset_index()
+
+    # points.crs = None
+
+    lines.to_file(output_gpkg, layer=lines_layer_name, driver="GPKG")
+    try:
+        points.to_file(output_gpkg, layer=points_layer_name, driver="GPKG")
+    except Exception as e:
+        raise e
+        # return points
+
+    out_args = {}
+    out_args["layers"] = []
+    out_args["layers"].append(points)
+    out_args["layers"].append(lines)
+
+    return out_args
+
+
+import topojson, copy
+from topojson.ops import np_array_from_arcs
+
+
+def extract_numpy_arcs(topology):
+    t = None
+    if "transform" in topology.output.keys():
+        s = np.array(topology.output["transform"]["scale"])
+        t = np.array(topology.output["transform"]["translate"])
+    top = topology._resolve_coords(topology.output)
+    np_arcs = np_array_from_arcs(top["arcs"])
+    if t is not None:
+        out = topojson.ops.dequantize(np_arcs, s, t)
+    else:
+        out = np_arcs
+
+    out = [o[~np.isnan(o).any(axis=1)] for o in out]
+
+    return out
+
+
+from shapely.geometry import asLineString
+
+
+def polygons_to_lines(polygons):
+    polygons.geometry = polygons.buffer(0)
+    polygons = explode_multipolygons(polygons)
+    polygons = remove_null_geometries(polygons)
+    polygons = remove_truly_duplicated_geometries(polygons)
+    log.info(polygons)
+
+    tj = topojson.Topology(polygons)
+
+    out = extract_numpy_arcs(tj)
+
+    glines = [asLineString(e) for e in out]
+    asg = geopandas.GeoDataFrame(geometry=glines)
+    return asg, polygons

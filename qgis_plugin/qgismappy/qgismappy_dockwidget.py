@@ -21,8 +21,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-
-print(" importing the dock")
+import traceback
 
 import os
 from typing import List, Tuple
@@ -35,30 +34,15 @@ from qgis.gui import QgsMapLayerComboBox, QgsFieldComboBox, QgsDoubleSpinBox
 from qgis.core import QgsMessageLog, QgsProject, QgsMapLayerProxyModel, QgsSymbol, QgsRendererCategory, \
     QgsSingleSymbolRenderer, QgsVectorLayer
 
-from qgis.core import QgsVectorLayer
-
 import mappy.geom_ops
-
-
-print(" done head imports for qgis")
 
 import logging as log
 
-print(" done with loggin 1-2")
-
 from .log_helper import *
-
-print(" done with loggin 2-2")
-
 
 from pathlib import Path
 
-print(" done with loggin and paths")
-
 from mappy.conversions import read_layer
-
-print(" trying to import from mappy")
-
 
 # from qgis.gui import QgsMapLayerComboBox
 
@@ -66,9 +50,6 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'qgismappy_dockwidget_base.ui'))
 
 import enum
-
-print(" done head imports")
-
 
 
 class MODE(enum.Enum):
@@ -91,8 +72,6 @@ mappy_deconstruct_args_mapping = [("de_map_layer", "polygons"),
                                   ("de_output_gpkg", "output_gpkg"),
                                   ("de_lines_layer", "lines_layer_name"),
                                   ("de_points_layer", "points_layer_name")]
-
-print(" starting class def")
 
 
 class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
@@ -159,35 +138,46 @@ class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         if filename:
             self.output.setText(filename + ext[1:])
 
+    @QtCore.pyqtSlot()
+    def on_de_save_as_clicked(self):
+        self.log_message("save as clicked", notifyUser=1)
+        filename, ext = QFileDialog.getSaveFileName(self, "Select output file ", "", '*.gpkg')
+        if filename[-5:] == ".gpkg":
+            filename = filename[:-5]
+
+        self.log_message(filename)
+        self.log_message(ext)
+        if filename:
+            self.de_output_gpkg.setText(filename + ext[1:])
+
     # def update_layer_selection(self):
     # layers = [layer for layer in QgsProject.instance().mapLayers().values()]
     # self.log_message(str(layers))
 
-    def on_pushButton_execute_triggered(self):
-        print(" triggered")
+    # def on_pushButton_execute_triggered(self):
+    #     print(" triggered")
 
     @QtCore.pyqtSlot()
     def on_execute_clicked(self):
-        print(" execution clicked")
+        log.debug(" execution clicked")
+
         log.debug(f"executing, mode is {self.current_mode}")
 
         if self.current_mode == MODE.CONSTRUCT:
             mapping = mappy_construct_args_mapping
             args = self.readParametersToDict(mapping)
+            log.debug(f"collected args: {args}")
             self.execute_construct(args)
 
         elif self.current_mode == MODE.DECONSTRUCT:
             mapping = mappy_deconstruct_args_mapping
             args = self.readParametersToDict(mapping)
+            log.debug(f"collected args: {args}")
+            self.execute_deconstruct(args)
 
         else:
             log.critical("cannot proceed")
             return
-
-
-        log.debug(f"collected args: {args}")
-
-
 
     def findLayer(self, gpkg, layer_name):
         gpkg = os.path.abspath(gpkg)
@@ -247,17 +237,13 @@ class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         return l
 
     def execute_construct(self, args):
-        print(" executing construct")
         try:
-            print(" trying")
             output = mappy.geom_ops.mappy_construct(**args)  # this will write to the geopackage
-            print(" trying done")
         except Exception as e:
-            print(" error occured")
-            print(e)
+            log.debug(" error occured")
+            log.error(e)
+            traceback.print_exc()
             return
-
-        print(" output written")
 
         # outgpkg = outgpkg[:-5]
         layer_name = args["layer_name"]
@@ -275,12 +261,54 @@ class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
         self.resetCategoriesIfNeeded(l, units_field)
 
+    def execute_deconstruct(self, args):
+        log.info("executing deconstruct")
+        try:
+            log.debug(" trying")
+            for a, b in args.items():
+                log.debug(f"-->  {type(b)}")
+            output = mappy.geom_ops.mappy_deconstruct(**args)  # this will write to the geopackage
+            log.debug(" trying done")
+        except Exception as e:
+            log.error(" error occured")
+            log.error(e)
+            import traceback
+            traceback.print_exc()
+            return
+
+        # outgpkg = outgpkg[:-5]
+        # polygons, units_field, output_gpkg, lines_layer_name, points_layer_name
+
+        # layer_name = args["layer_name"]
+        outgpkg = args["output_gpkg"]
+
+        for layer in [args["lines_layer_name"], args["points_layer_name"]]:
+            l = self.findLayer(outgpkg, layer)  # check if already loaded
+            if l:
+                log.info("Layer already loaded, just updating categories")
+
+            else:
+                l = self.addLayerFromGeopackage(outgpkg, layer, None)
+
+        self.resetCategoriesIfNeeded(l, args["units_field"])
+        # units_field = args["units_field"]
+        #
+        # log.info(f"loading layer {outgpkg}")
+        #
+        # l = self.findLayer(outgpkg, layer_name)  # check if already loaded
+        # if l:
+        #     log.info("Layer already loaded, just updating categories")
+        #
+        # else:
+        #     l = self.addLayerFromGeopackage(outgpkg, layer_name, units_field)
+        #
+        # self.resetCategoriesIfNeeded(l, units_field)
 
     def resetCategoriesIfNeeded(self, layer, units_field):
 
         prev_rend = layer.renderer()
 
-        if isinstance(prev_rend, QgsSingleSymbolRenderer):
+        if not isinstance(prev_rend, QgsCategorizedSymbolRenderer):
             renderer = QgsCategorizedSymbolRenderer(units_field)
             layer.setRenderer(renderer)
         else:

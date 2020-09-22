@@ -6,4 +6,3 @@ def test_geopandas_save_gpkg():
     df = geopandas.GeoDataFrame(geometry=[l])
 
     df.to_file("/home/luca/qua.gpkg", layer="name", driver="GPKG")
-

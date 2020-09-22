@@ -39,10 +39,10 @@ QgsMessageLog.logMessage(fullpath, "Mappy")
 
 
 if fullpath not in sys.path:
-    print(" adding the path")
+    # print(" adding the path")
     sys.path.insert(0, fullpath)
 
-print(" path is there- loading mappy")
+# print(" path is there- loading mappy")
 import mappy
 
 # noinspection PyPep8Naming

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>402</width>
-    <height>447</height>
+    <height>460</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <item row="0" column="1">
      <widget class="QTabWidget" name="tab">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_construction">
        <attribute name="title">
@@ -150,12 +150,15 @@
         <string>Deconstruction</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_3">
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_10">
+        <item row="5" column="2" colspan="2">
+         <widget class="QLineEdit" name="de_lines_layer">
           <property name="text">
-           <string>Map layer</string>
+           <string>limits</string>
           </property>
          </widget>
+        </item>
+        <item row="3" column="1" colspan="2">
+         <widget class="QLineEdit" name="de_output_gpkg"/>
         </item>
         <item row="4" column="0" colspan="2">
          <widget class="QLabel" name="label_14">
@@ -167,16 +170,6 @@
         <item row="2" column="1" colspan="3">
          <widget class="QgsFieldComboBox" name="de_units_field"/>
         </item>
-        <item row="0" column="0" colspan="4">
-         <widget class="QLabel" name="label_11">
-          <property name="text">
-           <string>Deconstruct a map into indicator points and lines</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1" colspan="3">
-         <widget class="QgsMapLayerComboBox" name="de_map_layer"/>
-        </item>
         <item row="3" column="3">
          <widget class="QPushButton" name="de_save_as">
           <property name="text">
@@ -184,22 +177,29 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label_12">
+        <item row="0" column="0" colspan="4">
+         <widget class="QLabel" name="label_11">
           <property name="text">
-           <string>Units field</string>
+           <string>Deconstruct a map into indicator points and lines</string>
           </property>
          </widget>
         </item>
-        <item row="5" column="2" colspan="2">
-         <widget class="QLineEdit" name="de_lines_layer">
+        <item row="3" column="0">
+         <widget class="QLabel" name="label_13">
           <property name="text">
-           <string>limits</string>
+           <string>Output Geopackage</string>
           </property>
          </widget>
         </item>
-        <item row="3" column="1" colspan="2">
-         <widget class="QLineEdit" name="de_output_gpkg"/>
+        <item row="1" column="1" colspan="3">
+         <widget class="QgsMapLayerComboBox" name="de_map_layer"/>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_10">
+          <property name="text">
+           <string>Map layer</string>
+          </property>
+         </widget>
         </item>
         <item row="5" column="0" colspan="2">
          <widget class="QLabel" name="label_15">
@@ -208,10 +208,10 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="label_13">
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_12">
           <property name="text">
-           <string>Output Geopackage</string>
+           <string>Units field</string>
           </property>
          </widget>
         </item>
@@ -223,13 +223,6 @@
          </widget>
         </item>
         <item row="6" column="2" colspan="2">
-         <widget class="QPushButton" name="de_execute">
-          <property name="text">
-           <string>Execute</string>
-          </property>
-         </widget>
-        </item>
-        <item row="7" column="2" colspan="2">
          <spacer name="verticalSpacer">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
