@@ -1,3 +1,5 @@
+VERSION=$(shell git describe --tags --abbrev=0)
+
 qgismappy:
 	cp -r qgis_plugin/qgismappy qgismappy
 
@@ -6,9 +8,11 @@ qgismappy/mappy:
 	
 clean:
 	rm -fr qgismappy
+	rm -fr qgismappy_*.zip
 	
 package: qgismappy qgismappy/mappy
-	TAG=$(git tag --points-at HEAD)
-	echo "compressing version" $TAG
+	$(info    VERSION:  $(VERSION))
+	zip -qq qgismappy_$(VERSION).zip -r qgismappy
+	
 
-	zip -qq qgismappy_$TAG.zip -r qgismappy
+	
