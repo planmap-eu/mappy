@@ -36,6 +36,26 @@ In this way QGIS should be able to find the plugin (activate it from the plugin 
 This repo also provides pregenerated zip packages that can be installed in qgis by using the plugin manager.
 Download it from [Releases](https://github.com/planmap-eu/mappy/releases) and install using the plugin manager
 
+## How to use
+
+- Ensure the plugin was correctly loaded and activated from Plugins -> Manage ...
+- Open the plugin interface via Plugins->mappy->Mappy
+- Load some data, for example you can use the data in the repository folder "input_data": load contacts and unit_id (just drag and drop the two folders in QGIS)
+- You can now execute the "construction" of the map:
+![woops, missing image](images/construct.png)
+- Select the two layers to use (only layers of the right type can be selected)
+- Remember to select a field to use as unit's name (or any field that can be used as identifier)
+- Run Compute at the bottom of the plugin
+
+## Using as a standalone module
+The mappy module can be used as a standalone module in your python script (of course mappy need to be in the PYTHONPATH of your  python intepreter, or installed via pip):
+
+```python
+
+
+```
+
+
 This module and QGIS plugin are used to perform the following transform, and vice-versa:
 
 ![woops, missing image](images/example.png)

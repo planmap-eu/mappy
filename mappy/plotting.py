@@ -16,3 +16,5 @@ def plot_contacts_and_units_points(contacts: geopandas.GeoDataFrame, units: geop
         text(row.geometry.x, row.geometry.y, row[units_field], fontsize=15)
 
     grid(True)
+
+    gca().axis("equal")

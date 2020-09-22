@@ -218,7 +218,8 @@ def generate_label_points(polygons: geopandas.GeoDataFrame):
 
 def transfer_polygons_fields_to_points(points: geopandas.GeoDataFrame, polygons: geopandas.GeoDataFrame):
     with_fields = geopandas.sjoin(points, polygons)
-    with_fields = with_fields.drop("fid", axis=1)  # remove the additional fid column that has been copied over
+    if "fid" in with_fields.columns:
+        with_fields = with_fields.drop("fid", axis=1)  # remove the additional fid column that has been copied over
     return with_fields
 
 
