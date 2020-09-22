@@ -50,10 +50,7 @@ Download it from [Releases](https://github.com/planmap-eu/mappy/releases) and in
 ## Using as a standalone module
 The mappy module can be used as a standalone module in your python script (of course mappy need to be in the PYTHONPATH of your  python intepreter, or installed via pip):
 
-```python
-
-
-```
+Have a look at the examples folder with an example of processing
 
 
 This module and QGIS plugin are used to perform the following transform, and vice-versa:

@@ -50,7 +50,7 @@ dec_lines = geopandas.read_file("deconstucted.gpkg", layer="lines")
 dec_points = geopandas.read_file("deconstucted.gpkg", layer="indicator_points")
 
 # %%
-plot_contacts_and_units_points(dec_lines, points, attribute)
+plot_contacts_and_units_points(dec_lines, dec_points, attribute)
 
 # %%
 
