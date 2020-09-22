@@ -34,6 +34,7 @@ In this way QGIS should be able to find the plugin (activate it from the plugin 
 
 ## b) From standalone package
 This repo also provides pregenerated zip packages that can be installed in qgis by using the plugin manager.
+Download it from [Releases](https://github.com/planmap-eu/mappy/releases) and install using the plugin manager
 
 This module and QGIS plugin are used to perform the following transform, and vice-versa:
 
