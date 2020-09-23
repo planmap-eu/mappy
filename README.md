@@ -42,7 +42,9 @@ Download it from [Releases](https://github.com/planmap-eu/mappy/releases) and in
 - Open the plugin interface via Plugins->mappy->Mappy
 - Load some data, for example you can use the data in the repository folder "input_data": load contacts and unit_id (just drag and drop the two folders in QGIS)
 - You can now execute the "construction" of the map:
+
 ![woops, missing image](images/construct.png)
+
 - Select the two layers to use (only layers of the right type can be selected)
 - Remember to select a field to use as unit's name (or any field that can be used as identifier)
 - Run Compute at the bottom of the plugin
