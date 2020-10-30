@@ -27,9 +27,12 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 # Initialize Qt resources from file resources.py
 from .resources import *
-
+from qgis.core import QgsApplication
 # Import the code for the DockWidget
-from .qgismappy_dockwidget import MappyDockWidget
+
+
+
+from .providers.provider import Provider
 import os.path
 
 
@@ -73,6 +76,8 @@ class Mappy:
 
         self.pluginIsActive = False
         self.dockwidget = None
+
+        self.provider = None
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -172,6 +177,8 @@ class Mappy:
             callback=self.run,
             parent=self.iface.mainWindow())
 
+        self.initProcessing()
+
     # --------------------------------------------------------------------------
 
     def onClosePlugin(self):
@@ -203,6 +210,8 @@ class Mappy:
         # remove the toolbar
         del self.toolbar
 
+        QgsApplication.processingRegistry().removeProvider(self.provider)
+
     # --------------------------------------------------------------------------
 
     def run(self):
@@ -211,14 +220,17 @@ class Mappy:
         if not self.pluginIsActive:
             self.pluginIsActive = True
 
-            # print "** STARTING Mappy"
+            import mappy
 
-            # dockwidget may not exist if:
-            #    first run of plugin
-            #    removed on close (see self.onClosePlugin method)
             if self.dockwidget == None:
-                # Create the dockwidget (after translation) and keep reference
-                self.dockwidget = MappyDockWidget()
+                if mappy.features_set == mappy.FeatureSet.geopandas_extended:
+
+                    from .qgismappy_dockwidget import MappyDockWidget
+                    self.dockwidget = MappyDockWidget()
+
+                else:
+                    from .dummy_info_widget import DummyInfoWidget
+                    self.dockwidget = DummyInfoWidget()
 
             # connect to provide cleanup on closing of dockwidget
             self.dockwidget.closingPlugin.connect(self.onClosePlugin)
@@ -227,3 +239,7 @@ class Mappy:
             # TODO: fix to allow choice of dock location
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dockwidget)
             self.dockwidget.show()
+
+    def initProcessing(self):
+        self.provider = Provider()
+        QgsApplication.processingRegistry().addProvider(self.provider)

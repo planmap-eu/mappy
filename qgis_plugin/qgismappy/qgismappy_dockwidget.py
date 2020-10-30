@@ -21,8 +21,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-import traceback
-
 import os
 from typing import List, Tuple
 
@@ -72,6 +70,47 @@ mappy_deconstruct_args_mapping = [("de_map_layer", "polygons"),
                                   ("de_output_gpkg", "output_gpkg"),
                                   ("de_lines_layer", "lines_layer_name"),
                                   ("de_points_layer", "points_layer_name")]
+
+
+def resetCategoriesIfNeeded(layer, units_field):
+    prev_rend = layer.renderer()
+
+    if not isinstance(prev_rend, QgsCategorizedSymbolRenderer):
+        renderer = QgsCategorizedSymbolRenderer(units_field)
+        layer.setRenderer(renderer)
+    else:
+        renderer = prev_rend
+
+    prev_cats = renderer.categories()
+
+    id = layer.fields().indexFromName(units_field)
+
+    values = sorted(list(layer.uniqueValues(id)))
+    categories = []
+
+    for current, value in enumerate(values):
+
+        already_in = False
+        for prev in prev_cats:
+            if prev.value() == value:
+                already_in = True
+                continue
+
+        if not already_in:
+            symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+            category = QgsRendererCategory(value, symbol, str(value))
+            categories.append(category)
+
+    for cat in categories:
+        renderer.addCategory(cat)
+
+    # layer.setRenderer(renderer)
+    layer.rendererChanged.emit()
+    layer.dataSourceChanged.emit()
+
+    layer.triggerRepaint()
+
+
 
 
 class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):

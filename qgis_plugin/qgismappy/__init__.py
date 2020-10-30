@@ -28,23 +28,25 @@ import sys
 
 path = os.path.dirname(os.path.abspath(__file__))
 
-if os.path.exists(os.path.join(path, "mappy")):
+if os.path.exists(os.path.join(path, "mappy")): #  in the package
     sys.path.append(path)
+    sys.path.append(os.path.join(path, "external"))
+
 
 else:  # we are in the dev folder
     fullpath = path + " /../../"
     fullpath = os.path.abspath(fullpath)
 
+    ext_path = os.path.join(fullpath, "external")
+
     if fullpath not in sys.path:
         # print(" adding the path")
         sys.path.insert(0, fullpath)
 
-# QgsMessageLog.logMessage(fullpath, "Mappy")
+    if ext_path not in sys.path:
+        # print(" adding the path")
+        sys.path.insert(0, ext_path)
 
-# to fix, we are expecting the structure is as in the dev repo
-
-
-# print(" path is there- loading mappy")
 try:
     import mappy
 except:
