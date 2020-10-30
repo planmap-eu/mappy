@@ -30,6 +30,8 @@ git clone https://github.com/planmap-eu/mappy.git mappy.git
  QGIS_PLUGINPATH=/path_to_folder/mappy.git/qgis_plugin/
 ```
 
+ or directly define `QGIS_PLUGINPATH` through `QGIS > Preferences > Environment`.
+ 
 In this way QGIS should be able to find the plugin (activate it from the plugin manager of QGIS)
 
 ## b) From standalone package
@@ -58,3 +60,14 @@ Have a look at the examples folder with an example of processing
 This module and QGIS plugin are used to perform the following transform, and vice-versa:
 
 ![woops, missing image](images/example.png)
+
+## Troubleshooting
+
+### Can't load plugin 'qgismappy'
+
+* `ModuleNotFoundError`: some of the dependencies are not installed. Mappy uses, for instance, as of this writting _geopandas_ and _ topojson_ which must be accessible/installed to the Python binary QGIS is using. On linux, QGIS uses the Python interpreter found on system/users environment. On MacOS, for instance, the (Python) interpreter is shipped together with QGIS.
+  On MacOS, QGIS 3.14, Python is at `/Applications/QGIS3.14.app/Contents/Frameworks/Python.framework/Versions/Current/bin/`, so to install the dependencies we would do:
+  ```bash
+  /Applications/QGIS3.14.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3 -m pip install geopandas topojson
+  ```
+  
