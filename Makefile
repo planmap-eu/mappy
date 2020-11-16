@@ -8,11 +8,11 @@ qgismappy/mappy:
 	
 clean:
 	rm -fr qgismappy
-	rm -fr qgismappy_*.zip
+	rm -fr qgismappy-*.zip
 	
 package: qgismappy qgismappy/mappy
 	$(info    VERSION:  $(VERSION))
-	zip -qq qgismappy_$(VERSION).zip -r qgismappy
+	zip -qq qgismappy-$(VERSION).zip -r qgismappy
 	
 
 	
