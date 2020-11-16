@@ -16,7 +16,12 @@ The mappy python modul;e (and the QGIS plugin) makes use of several additional l
  
 # Install
 
-## a) From repo in development mode
+## a) [suggested] From standalone package
+This repo also provides pregenerated zip packages that can be installed in qgis by using the plugin manager.
+Download it from [Releases](https://github.com/planmap-eu/mappy/releases) and install using the plugin manager
+
+
+## b) From repo in development mode
 
 To install the plugin clone this repo in a dedicated user folder:
 
@@ -34,9 +39,6 @@ git clone https://github.com/planmap-eu/mappy.git mappy.git
  
 In this way QGIS should be able to find the plugin (activate it from the plugin manager of QGIS)
 
-## b) From standalone package
-This repo also provides pregenerated zip packages that can be installed in qgis by using the plugin manager.
-Download it from [Releases](https://github.com/planmap-eu/mappy/releases) and install using the plugin manager
 
 ## How to use
 
