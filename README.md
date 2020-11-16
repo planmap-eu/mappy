@@ -14,6 +14,8 @@ The mappy python modul;e (and the QGIS plugin) makes use of several additional l
  - geopandas
  - topojson
  
+ In some cases it might be difficult to correctly install these packages, for this reason whenever the plugin cannot find these requirements it will still load but the main dock of the plugin will be disabled. Map construction will be still be available via a dedicated provider from the toolbox. But deconstruction will not be available.
+ 
 # Install
 
 ## a) [suggested] From standalone package
