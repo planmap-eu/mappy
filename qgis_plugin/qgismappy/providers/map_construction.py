@@ -13,6 +13,8 @@
 
 from qgis import processing
 from qgis.PyQt.QtCore import QCoreApplication
+from qgis._core import Qgis, QgsProcessingParameterBoolean, QgsProcessingUtils, QgsApplication
+from qgis.gui import QgsMessageBar
 from qgis.core import (QgsProcessing,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
@@ -20,6 +22,12 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSink, QgsProcessingParameterDistance, QgsWkbTypes, QgsFeatureSink,
                        QgsProcessingParameterField)
 
+
+from qgis.utils import iface
+
+from qgis.PyQt.QtGui import QIcon
+
+from ..qgismappy_dockwidget import resetCategoriesIfNeeded
 
 class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
     """
@@ -35,14 +43,19 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
     class.
     """
 
+    def icon(self):
+        return QIcon(':/plugins/qgismappy/mapconstruction.png')
+
     # Constants used to refer to parameters and outputs. They will be
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
     IN_LINES = 'IN_LINES'
     IN_POINTS = 'IN_POINTS'
+    CAT_FIELD = "CAT_FIELD"
     EXT_DISTANCE = "EXT_DISTANCE"
     OUTPUT = 'OUTPUT'
+    DROP_UNMATCHED = "DROP_UNMATCHED"
     # MAIN_FIELD = "MAIN_FIELD"
 
     def tr(self, string):
@@ -62,7 +75,7 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'myscript'
+        return 'mapconstruction'
 
     def displayName(self):
         """
@@ -101,7 +114,7 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
                        "- remove duplicated vertices\n"
                        "- extend lines to grant intersection\n"
                        "- polygonize the lines\n"
-                       "- assign fileds to polygons using the points layer (via a spatial join)\n"
+                       "- assign fields to polygons using the points layer (via a spatial join)\n"
                        "The output is a polygonal layer with granted topological consistency (no overalps, holes, duplicated geometries etc), perfect for a geological map.")
 
 
@@ -111,6 +124,8 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
+
+
 
         self.addParameter(
             QgsProcessingParameterFeatureSource(
@@ -129,21 +144,21 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
         )
 
         self.addParameter(
+            QgsProcessingParameterField(
+                self.CAT_FIELD,
+                self.tr('Units field in point layer'),
+                parentLayerParameterName = self.IN_POINTS,
+                optional=True
+            )
+        )
+
+        self.addParameter(
             QgsProcessingParameterDistance(self.EXT_DISTANCE, self.tr('Extend Lines Distance'), defaultValue=0.0,
                                            minValue=0.0, optional=True, parentParameterName=self.IN_LINES))
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
-        # self.addParameter(
-        #     QgsProcessingParameterFeatureSink(
-        #         self.OUTPUT,
-        #         self.tr('Constructed Map')
-        #     )
-        # )
+        self.addParameter(QgsProcessingParameterBoolean(self.DROP_UNMATCHED, self.tr("Drop unassigned polygons"), defaultValue=False))
 
-        # self.addParameter(QgsProcessingParameterField(self.MAIN_FIELD, self.tr("Main Field (mostly for rendering)"),
-        #                                               parentLayerParameterName=self.IN_POINTS))
+
 
         self.addParameter(
             QgsProcessingParameterFeatureSink(
@@ -152,14 +167,29 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-    def processAlgorithm(self, parameters, context, feedback):
-        """
-        Here is where the processing itself takes place.
-        """
+    def checkSavedState(self, parameters, context, name):
+        layer = self.parameterAsLayer( parameters,
+            name,
+            context)
 
-        # Retrieve the feature source_lines and sink. The 'dest_id' variable is used
-        # to uniquely identify the feature sink, and must be included in the
-        # dictionary returned by the processAlgorithm function.
+        if layer.isModified():
+            import os
+            basename = os.path.splitext(os.path.basename(layer.source()))[0]
+            raise QgsProcessingException(f"Input layer {basename} for input paramete {name} was modified but not saved. Please be sure to save your edits before generating the polygons")
+
+    def matchAlgo(self, name):
+        reg = QgsApplication.processingRegistry()
+        found = reg.algorithmById(name)
+        if found:
+            return name
+        else:
+            return "qgis:" + name.split(":")[1]
+
+    def processAlgorithm(self, parameters, context, feedback):
+        pname = self.matchAlgo("native:polygonize")
+        spiname = self.matchAlgo("native:createspatialindex")
+        jname = self.matchAlgo("native:joinattributesbylocation")
+
         source_lines = self.parameterAsSource(
             parameters,
             self.IN_LINES,
@@ -172,13 +202,14 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
             context
         )
 
+
+        self.checkSavedState(parameters, context, self.IN_POINTS)
+        self.checkSavedState(parameters, context, self.IN_LINES)
+
         # field = self.parameterAsString(parameters, self.MAIN_FIELD, context)
         distance = self.parameterAsDouble(parameters, self.EXT_DISTANCE, context)
 
-        # If source_lines was not found, throw an exception to indicate that the algorithm
-        # encountered a fatal error. The exception text can be any string, but in this
-        # case we use the pre-built invalidSourceError method to return a standard
-        # helper text for when a source_lines cannot be evaluated
+
         if source_lines is None:
             raise QgsProcessingException(self.invalidSourceError(parameters, self.IN_LINES))
 
@@ -188,27 +219,7 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
         # Send some information to the user
         feedback.pushInfo('CRS is {}'.format(source_lines.sourceCrs().authid()))
 
-        # Compute the number of steps to display within the progress bar and
-        # get features from source_lines
-        # total = 100.0 / source_lines.featureCount() if source_lines.featureCount() else 0
-        # features = source_lines.getFeatures()
-        #
-        # for current, feature in enumerate(features):
-        #     # Stop the algorithm if cancel button has been clicked
-        #     if feedback.isCanceled():
-        #         break
-        #
-        #     # Add a feature in the sink
-        #     sink.addFeature(feature, QgsFeatureSink.FastInsert)
-        #
-        #     # Update the progress bar
-        #     feedback.setProgress(int(current * total))
 
-        # To run another Processing algorithm as part of this algorithm, you can use
-        # processing.run(...). Make sure you pass the current context and feedback
-        # to processing.run to ensure that all temporary layer outputs are available
-        # to the executed algorithm, and that the executed algorithm can send feedback
-        # reports to the user (and correctly handle cancellation and progress reports!)
 
         if feedback.isCanceled():
             return {}
@@ -230,13 +241,37 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
                                          'OUTPUT': 'memory:', 'START_DISTANCE': distance}, context=context,
                                         feedback=feedback, is_child_algorithm=True)
 
-        polygonized_layer = processing.run("native:polygonize", {
+        feedback.pushInfo(f"polygonizing")
+
+        polygonized_layer = processing.run(pname, {
             'INPUT': extended_layer["OUTPUT"],
-            'OUTPUT': 'memory:',
+            "OUTPUT": QgsProcessingUtils.generateTempFilename("polygonize.gpkg")
         }, context=context, feedback=feedback, is_child_algorithm=True)
 
-        joined_layer = processing.run("native:joinattributesbylocation",
-                                      {'DISCARD_NONMATCHING': False,
+
+
+
+        feedback.pushInfo(f"output of polygonize at {polygonized_layer['OUTPUT']}" )
+        feedback.pushInfo(f"processing {type(processing)}")
+
+
+        feedback.pushInfo(f"generating spatial index")
+
+        polygons_wspatial =processing.run(spiname,
+                                  {"INPUT": polygonized_layer["OUTPUT"]},  is_child_algorithm=True,feedback=feedback)
+
+        points_wspatial = processing.run(spiname,
+                                  {"INPUT": parameters[self.IN_POINTS]},  is_child_algorithm=True,feedback=feedback)
+
+        points_layer = self.parameterAsLayer(parameters, self.IN_POINTS, context)
+        feedback.pushInfo(str(points_layer))
+
+
+        drop= self.parameterAsBool(parameters,self.DROP_UNMATCHED, context)
+
+        feedback.pushInfo(f"joining")
+        joined_layer = processing.run(jname,
+                                      {'DISCARD_NONMATCHING': drop,
                                        'INPUT': polygonized_layer["OUTPUT"],
                                        'JOIN': parameters[self.IN_POINTS],
                                        'JOIN_FIELDS': [],
@@ -246,7 +281,7 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
                                        'PREFIX': ''}
 
                                       , context=context, feedback=feedback, is_child_algorithm=False)
-        feedback.pushInfo(f"layer is {joined_layer}")
+        # feedback.pushInfo(f"layer is {joined_layer}")
 
         (sink, dest_id) = self.parameterAsSink(
             parameters,
@@ -257,7 +292,7 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
             source_lines.sourceCrs()
         )
 
-        feedback.pushInfo(f"destination {dest_id}")
+        # feedback.pushInfo(f"destination {dest_id}")
         #
         # # If sink was not created, throw an exception to indicate that the algorithm
         # # encountered a fatal error. The exception text can be any string, but in this
@@ -269,6 +304,9 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
         #
         for feature in joined_layer["OUTPUT"].getFeatures():
             sink.addFeature(feature, QgsFeatureSink.FastInsert)
+
+        outlayer = self.parameterAsLayer(parameters, self.OUTPUT, context)
+        feedback.pushInfo("->"+str(outlayer))
 
         # from qgismappy.qgismappy_dockwidget import resetCategoriesIfNeeded
         # resetCategoriesIfNeeded(sink, field)

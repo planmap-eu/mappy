@@ -72,7 +72,7 @@ mappy_deconstruct_args_mapping = [("de_map_layer", "polygons"),
                                   ("de_points_layer", "points_layer_name")]
 
 
-def resetCategoriesIfNeeded(layer, units_field):
+def resetCategoriesIfNeeded(layer, units_field, unassigned=True):
     prev_rend = layer.renderer()
 
     if not isinstance(prev_rend, QgsCategorizedSymbolRenderer):
@@ -82,10 +82,15 @@ def resetCategoriesIfNeeded(layer, units_field):
         renderer = prev_rend
 
     prev_cats = renderer.categories()
-
     id = layer.fields().indexFromName(units_field)
+    uniques = list(layer.uniqueValues(id))
+    uniques_clean = [u for u in uniques if u is not None]
 
-    values = sorted(list(layer.uniqueValues(id)))
+    values = sorted(uniques_clean)
+
+    if None in uniques and unassigned:
+        values.append(None)
+
     categories = []
 
     for current, value in enumerate(values):
@@ -356,8 +361,10 @@ class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         prev_cats = renderer.categories()
 
         id = layer.fields().indexFromName(units_field)
+        uniques = list(layer.uniqueValues(id))
+        uniques = [u for u in uniques if u is not None]
 
-        values = sorted(list(layer.uniqueValues(id)))
+        values = sorted(uniques)
         categories = []
 
         for current, value in enumerate(values):

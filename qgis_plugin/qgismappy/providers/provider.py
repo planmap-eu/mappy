@@ -2,6 +2,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProcessingProvider
 
 from .map_construction import MapConstructionProcessingAlgorithm
+from .map_autostyle import MapAutoStyleProcessingAlgorithm
 
 
 class Provider(QgsProcessingProvider):
@@ -9,6 +10,7 @@ class Provider(QgsProcessingProvider):
 
     def loadAlgorithms(self, *args, **kwargs):
         self.addAlgorithm(MapConstructionProcessingAlgorithm())
+        self.addAlgorithm(MapAutoStyleProcessingAlgorithm())
         # add additional algorithms here
         # self.addAlgorithm(MyOtherAlgorithm())
 

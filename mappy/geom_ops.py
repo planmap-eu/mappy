@@ -58,6 +58,18 @@ def drop_duplicated_points(points: np.ndarray, threshold=1e-8):
 
     return clean
 
+def delete_small_polygons(polygons: geopandas.GeoDataFrame, area=1e-6):
+    """deletion is in place"""
+    todrop = []
+    for id, p in enumerate(polygons.geometry):
+        if p.area < 1e-6:
+    #         print("null area")
+            todrop.append(id)
+
+
+    polygons.drop(todrop, inplace=True)
+    return len(todrop)
+
 
 def extend_lines(geodataframe: geopandas.GeoDataFrame, distance: float):
     """
@@ -147,7 +159,7 @@ def polygonize(lines: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
 
 def get_points_inside(polygon, points):
     """
-    commodity function to get the ids of points falling within a polygon
+    commodity function to get the polygon_ids of points falling within a polygon
     \note for now only Polygon is considered. - not MultiP
     """
     out = []
@@ -170,7 +182,7 @@ def transfer_units_to_polygons(polygons: geopandas.GeoDataFrame, units: geopanda
     outids = []
     for pol in polygons.geometry:
         ids = get_points_inside(pol, units.geometry)
-        log.info(f"found {len(ids)} ids: {ids}")
+        log.info(f"found {len(ids)} polygon_ids: {ids}")
         thisunit = units[units_field][ids].values
         log.info(f"thisunit {thisunit}")
 
