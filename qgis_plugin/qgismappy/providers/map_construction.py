@@ -13,7 +13,7 @@
 
 from qgis import processing
 from qgis.PyQt.QtCore import QCoreApplication
-from qgis._core import Qgis, QgsProcessingParameterBoolean, QgsProcessingUtils, QgsApplication
+from qgis.core import Qgis, QgsProcessingParameterBoolean, QgsProcessingUtils, QgsApplication
 from qgis.gui import QgsMessageBar
 from qgis.core import (QgsProcessing,
                        QgsProcessingException,
@@ -52,7 +52,7 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
 
     IN_LINES = 'IN_LINES'
     IN_POINTS = 'IN_POINTS'
-    CAT_FIELD = "CAT_FIELD"
+    # CAT_FIELD = "CAT_FIELD"
     EXT_DISTANCE = "EXT_DISTANCE"
     OUTPUT = 'OUTPUT'
     DROP_UNMATCHED = "DROP_UNMATCHED"
@@ -68,47 +68,20 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
         return MapConstructionProcessingAlgorithm()
 
     def name(self):
-        """
-        Returns the algorithm name, used for identifying the algorithm. This
-        string should be fixed for the algorithm, and must not be localised.
-        The name should be unique within each provider. Names should contain
-        lowercase alphanumeric characters only and no spaces or other
-        formatting characters.
-        """
         return 'mapconstruction'
 
     def displayName(self):
-        """
-        Returns the translated algorithm name, which should be used for any
-        user-visible display of the algorithm name.
-        """
-        return self.tr('Map Construction')
+         return self.tr('Map Construction')
 
     def group(self):
-        """
-        Returns the name of the group this algorithm belongs to. This string
-        should be localised.
-        """
         return self.tr('Mapping')
 
     def groupId(self):
-        """
-        Returns the unique ID of the group this algorithm belongs to. This
-        string should be fixed for the algorithm, and must not be localised.
-        The group id should be unique within each provider. Group id should
-        contain lowercase alphanumeric characters only and no spaces or other
-        formatting characters.
-        """
         return 'mapping'
 
 
 
     def shortHelpString(self):
-        """
-        Returns a localised short helper string for the algorithm. This string
-        should provide a basic description about what the algorithm does and the
-        parameters and outputs associated with it..
-        """
         return self.tr("Generate consistent polygonal layers starting from limits and indicator points. This tool execute in sequences the following operations for you:\n"
                        "- removes null geometries\n"
                        "- remove duplicated vertices\n"
@@ -120,13 +93,6 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
 
 
     def initAlgorithm(self, config=None):
-        """
-        Here we define the inputs and output of the algorithm, along
-        with some other properties.
-        """
-
-
-
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.IN_LINES,
@@ -143,14 +109,6 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        self.addParameter(
-            QgsProcessingParameterField(
-                self.CAT_FIELD,
-                self.tr('Units field in point layer'),
-                parentLayerParameterName = self.IN_POINTS,
-                optional=True
-            )
-        )
 
         self.addParameter(
             QgsProcessingParameterDistance(self.EXT_DISTANCE, self.tr('Extend Lines Distance'), defaultValue=0.0,
@@ -215,10 +173,6 @@ class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
 
         if source_pts is None:
             raise QgsProcessingException(self.invalidSourceError(parameters, self.IN_POINTS))
-
-        # Send some information to the user
-        feedback.pushInfo('CRS is {}'.format(source_lines.sourceCrs().authid()))
-
 
 
         if feedback.isCanceled():

@@ -71,6 +71,7 @@ mappy_deconstruct_args_mapping = [("de_map_layer", "polygons"),
                                   ("de_lines_layer", "lines_layer_name"),
                                   ("de_points_layer", "points_layer_name")]
 
+from qgis.core import NULL
 
 def resetCategoriesIfNeeded(layer, units_field, unassigned=True):
     prev_rend = layer.renderer()
@@ -84,12 +85,17 @@ def resetCategoriesIfNeeded(layer, units_field, unassigned=True):
     prev_cats = renderer.categories()
     id = layer.fields().indexFromName(units_field)
     uniques = list(layer.uniqueValues(id))
-    uniques_clean = [u for u in uniques if u is not None]
+    uniques_clean = []
+
+    for u in uniques:
+        if u not in [None, NULL]:
+            uniques_clean.append(u)
 
     values = sorted(uniques_clean)
 
-    if None in uniques and unassigned:
-        values.append(None)
+    if unassigned:
+        if None in uniques or NULL in uniques:
+            values.append("")
 
     categories = []
 
@@ -102,8 +108,12 @@ def resetCategoriesIfNeeded(layer, units_field, unassigned=True):
                 continue
 
         if not already_in:
+            if value =="":
+                name = "Unassigned"
+            else:
+                name = str(value)
             symbol = QgsSymbol.defaultSymbol(layer.geometryType())
-            category = QgsRendererCategory(value, symbol, str(value))
+            category = QgsRendererCategory(value, symbol, name)
             categories.append(category)
 
     for cat in categories:

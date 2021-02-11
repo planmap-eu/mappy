@@ -28,7 +28,6 @@ from qgis.utils import iface
 from qgis.PyQt.QtGui import QIcon
 
 from ..qgismappy_dockwidget import resetCategoriesIfNeeded
-
 class MapAutoStyleProcessingAlgorithm(QgsProcessingAlgorithm):
     """
     Helper to assign categorized style to a polygonal layer
@@ -70,7 +69,7 @@ class MapAutoStyleProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.IN_POLYGONS,
-                self.tr('Input Lines'),
+                self.tr('Input Polygons'),
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
