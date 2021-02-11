@@ -24,13 +24,13 @@
 import os
 from typing import List, Tuple
 
-from qgis.PyQt import QtGui, QtWidgets, uic, QtCore
-from qgis.PyQt.QtCore import pyqtSignal, QObject
+from qgis.PyQt import QtWidgets, uic, QtCore
+from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import QFileDialog, QLineEdit, QCheckBox
 from qgis.core import QgsCategorizedSymbolRenderer
 from qgis.gui import QgsMapLayerComboBox, QgsFieldComboBox, QgsDoubleSpinBox
-from qgis.core import QgsMessageLog, QgsProject, QgsMapLayerProxyModel, QgsSymbol, QgsRendererCategory, \
-    QgsSingleSymbolRenderer, QgsVectorLayer
+from qgis.core import QgsProject, QgsMapLayerProxyModel, QgsSymbol, QgsRendererCategory, \
+    QgsVectorLayer
 
 import mappy.geom_ops
 
@@ -70,62 +70,6 @@ mappy_deconstruct_args_mapping = [("de_map_layer", "polygons"),
                                   ("de_output_gpkg", "output_gpkg"),
                                   ("de_lines_layer", "lines_layer_name"),
                                   ("de_points_layer", "points_layer_name")]
-
-from qgis.core import NULL
-
-def resetCategoriesIfNeeded(layer, units_field, unassigned=True):
-    prev_rend = layer.renderer()
-
-    if not isinstance(prev_rend, QgsCategorizedSymbolRenderer):
-        renderer = QgsCategorizedSymbolRenderer(units_field)
-        layer.setRenderer(renderer)
-    else:
-        renderer = prev_rend
-
-    prev_cats = renderer.categories()
-    id = layer.fields().indexFromName(units_field)
-    uniques = list(layer.uniqueValues(id))
-    uniques_clean = []
-
-    for u in uniques:
-        if u not in [None, NULL]:
-            uniques_clean.append(u)
-
-    values = sorted(uniques_clean)
-
-    if unassigned:
-        if None in uniques or NULL in uniques:
-            values.append("")
-
-    categories = []
-
-    for current, value in enumerate(values):
-
-        already_in = False
-        for prev in prev_cats:
-            if prev.value() == value:
-                already_in = True
-                continue
-
-        if not already_in:
-            if value =="":
-                name = "Unassigned"
-            else:
-                name = str(value)
-            symbol = QgsSymbol.defaultSymbol(layer.geometryType())
-            category = QgsRendererCategory(value, symbol, name)
-            categories.append(category)
-
-    for cat in categories:
-        renderer.addCategory(cat)
-
-    # layer.setRenderer(renderer)
-    layer.rendererChanged.emit()
-    layer.dataSourceChanged.emit()
-
-    layer.triggerRepaint()
-
-
 
 
 class MappyDockWidget(QtWidgets.QDockWidget, FORM_CLASS):

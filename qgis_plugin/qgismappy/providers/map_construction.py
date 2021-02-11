@@ -27,7 +27,8 @@ from qgis.utils import iface
 
 from qgis.PyQt.QtGui import QIcon
 
-from ..qgismappy_dockwidget import resetCategoriesIfNeeded
+from ..utils import resetCategoriesIfNeeded
+
 
 class MapConstructionProcessingAlgorithm(QgsProcessingAlgorithm):
     """

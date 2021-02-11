@@ -27,7 +27,9 @@ from qgis.utils import iface
 
 from qgis.PyQt.QtGui import QIcon
 
-from ..qgismappy_dockwidget import resetCategoriesIfNeeded
+from ..utils import resetCategoriesIfNeeded
+
+
 class MapAutoStyleProcessingAlgorithm(QgsProcessingAlgorithm):
     """
     Helper to assign categorized style to a polygonal layer
@@ -103,7 +105,7 @@ class MapAutoStyleProcessingAlgorithm(QgsProcessingAlgorithm):
         unassigned = self.parameterAsBool(parameters, self.STYLE_UNASSIGNED, context)
         feedback.pushInfo(f"field used is {fieldname}")
 
-        from ..qgismappy_dockwidget import resetCategoriesIfNeeded
+        from ..utils import resetCategoriesIfNeeded
         resetCategoriesIfNeeded(polygons_layer, fieldname, unassigned=unassigned)
         return {}
 

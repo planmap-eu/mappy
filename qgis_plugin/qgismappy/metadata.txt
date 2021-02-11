@@ -6,7 +6,7 @@
 name=mappy
 qgisMinimumVersion=3.0
 description=helper for consistent goelogical map generation
-version=0.0.3
+version=0.0.4
 author=Luca Penasa, PLANMAP and GMAP team
 email=luca.penasa@gmail.com
 
