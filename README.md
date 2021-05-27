@@ -1,3 +1,8 @@
+
+# Important note
+**Development and maintenence is now done at https://github.com/europlanet-gmap/mappy  where also further releases will be made available**
+
+
 # mappy
 
 This repo contains python code to generate maps starting from boundary lines and indicator points. The inverse operation is also supported.
